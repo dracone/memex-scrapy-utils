@@ -12,8 +12,6 @@ class RefererChainMiddleware(object):
         return cls()
 
     def process_response(self, request, response, spider):
-        print request, response
-        1/0
         referers = copy.deepcopy(response.meta.get('referers', []))
         referers.append(response.url)
         response.meta['referers'] = referers

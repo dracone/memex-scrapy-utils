@@ -130,8 +130,6 @@ class SplashMiddleware(object):
         meta = request.meta.copy()
         meta.pop('splash', None)
         meta['_splash'] = True
-        #meta['depth'] = meta.get('depth', 1) - 1
-        #print request.url
         meta['splash_target_url'] = request.url
 
         if self.RESPECT_SLOTS:
