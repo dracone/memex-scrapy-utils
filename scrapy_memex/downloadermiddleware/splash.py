@@ -5,7 +5,6 @@ import base64
 import copy
 import json
 from urlparse import urljoin
-from urllib import urlencode
 from scrapy import log
 
 
@@ -50,19 +49,14 @@ class SplashMiddleware(object):
     }
     RESPECT_SLOTS = True
 
-    def __init__(self, crawler, splash_url):
+    def __init__(self, crawler, splash_url, endpoint='render.json'):
         self.crawler = crawler
-        self._splash_url = splash_url
+        self.splash_url = urljoin(splash_url, endpoint)
 
     @classmethod
     def from_crawler(cls, crawler):
         url = crawler.settings.get('SPLASH_URL', cls.SPLASH_DEFAULT_URL)
         return cls(crawler, url)
-
-    def splash_url(self, query, url, endpoint='render.json'):
-        query = query.copy()
-        query['url'] = url
-        return urljoin(self._splash_url, endpoint) + '?' + urlencode(query)
 
     def process_request(self, request, spider):
         if request.meta.get('_splash'):
@@ -117,13 +111,14 @@ class SplashMiddleware(object):
             meta['download_slot'] = self._get_slot_key(request)
 
         self.crawler.stats.inc_value('splash/request_count')
-
+        splash_options['url'] = request.url
+        splash_options['headers'] = request.headers
         req_rep = request.replace(
-            url=self.splash_url(splash_options, request.url),
+            url=self.splash_url,
+            method='POST',
+            body=json.dumps(splash_options),
             meta=meta,
-            # FIXME: original HTTP headers are not respected.
-            # To respect them changes to Splash are needed.
-            headers={},
+            headers={'Content-Type': 'application/json'},
         )
         return req_rep
 
