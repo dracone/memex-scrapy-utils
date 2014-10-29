@@ -4,14 +4,9 @@ import logging
 import base64
 import copy
 import json
-import os
-from hashlib import md5
 from urlparse import urljoin
 from urllib import urlencode
 from scrapy import log
-from scrapy.utils.misc import arg_to_iter
-
-from scrapy_memex.utils.project import project_root
 
 
 class SplashMiddleware(object):
@@ -50,41 +45,24 @@ class SplashMiddleware(object):
     SPLASH_RENDER_HTML_OPTIONS = {
         'html': '1',
     }
-    SPLASH_STORE_PNG_OPTIONS = {
+    SPLASH_RENDER_PNG_OPTIONS = {
         'png': '1'
     }
     RESPECT_SLOTS = True
 
-    def __init__(self, crawler, splash_url, png_dir):
+    def __init__(self, crawler, splash_url):
         self.crawler = crawler
         self._splash_url = splash_url
-        self._png_dir = self.real_png_dir(png_dir)
 
     @classmethod
     def from_crawler(cls, crawler):
         url = crawler.settings.get('SPLASH_URL', cls.SPLASH_DEFAULT_URL)
-        png_dir = crawler.settings.get('SPLASH_PNG_DIR',
-                                       cls.SPLASH_DEFAULT_PNG_DIR)
-        return cls(crawler, url, png_dir)
+        return cls(crawler, url)
 
     def splash_url(self, query, url, endpoint='render.json'):
         query = query.copy()
         query['url'] = url
         return urljoin(self._splash_url, endpoint) + '?' + urlencode(query)
-
-    def real_png_dir(self, png_dir):
-        root = project_root()
-        return os.path.join(root, png_dir)
-
-    def store_png(self, png_base64):
-        png = base64.b64decode(png_base64)
-        if not os.path.exists(self._png_dir):
-            os.makedirs(self._png_dir)
-
-        fn = os.path.join(self._png_dir, md5(png).hexdigest() + '.png')
-        with open(fn, 'wb') as fp:
-            fp.write(png)
-        return fn
 
     def process_request(self, request, spider):
         if request.meta.get('_splash'):
@@ -93,22 +71,23 @@ class SplashMiddleware(object):
         # and set most common options for the user.
         # Callback will be called with rendered HTML, not with Splash JSON data
         render_html = request.meta.get('splash_render_html')
-        # Store screenshots automatically in specified directory
-        store_png = request.meta.get('splash_store_png')
+        # Return png in response.meta
+        render_png = request.meta.get('splash_render_png')
+
         custom_splash_options = request.meta.get('splash', {})
         splash_options = copy.deepcopy(self.SPLASH_DEFAULT_OPTIONS)
 
-        if store_png:
+        if render_png:
             # Can't store png only, because some response must be returned
             render_html = True
-            splash_options.update(self.SPLASH_STORE_PNG_OPTIONS)
+            splash_options.update(self.SPLASH_RENDER_PNG_OPTIONS)
             splash_options.update(custom_splash_options)
 
         if render_html:
             splash_options.update(self.SPLASH_RENDER_HTML_OPTIONS)
             splash_options.update(custom_splash_options)
 
-        if not store_png and not render_html:
+        if not render_png and not render_html:
             if custom_splash_options:
                 splash_options = custom_splash_options
             else:
@@ -154,18 +133,18 @@ class SplashMiddleware(object):
                                          response.status)
             if response.status != 200:
                 return response
-            if request.meta.get('splash_render_html') and request.meta.get('splash_store_png'):
+            if (request.meta.get('splash_render_html') and
+                    request.meta.get('splash_render_png')):
                 data = json.loads(response.body)
-                png_filename = self.store_png(data['png'])
                 response = response.replace(
                     body=data['html'].encode('utf-8'),
                     encoding='utf-8',
                     url=request.meta.pop('splash_target_url'),
                 )
-                request.meta['png_filename'] = png_filename
+                request.meta['png'] = base64.b64decode(data['png'])
             elif request.meta.get('splash_render_html'):
                 response = response.replace(url=request.url)
-            
+
         return response
 
     def _get_slot_key(self, request_or_response):
