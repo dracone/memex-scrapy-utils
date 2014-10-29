@@ -13,10 +13,7 @@ class RefererChainMiddleware(object):
 
     def process_spider_output(self, response, result, spider):
         def _append_referer(r):
-            #print response
             if isinstance(r, Request):
-                # print '    ', r, r.meta
-                # return r
                 referers = copy.deepcopy(response.meta.get('referers', []))
                 referers.append(response.url)
                 r.meta['referers'] = referers
