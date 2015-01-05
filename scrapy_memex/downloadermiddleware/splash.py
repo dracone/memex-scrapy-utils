@@ -90,7 +90,7 @@ class SplashMiddleware(object):
         return new_request
 
     def _lua_request(self, request, splash_options, directive):
-        splash_url = urljoin(self.splash_url, 'render.lua')
+        splash_url = urljoin(self.splash_url, 'execute')
         lua_source = self._load_lua_source(directive)
         meta = self._prepare_meta(request, splash_options)
         splash_options['url'] = request.url
