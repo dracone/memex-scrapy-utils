@@ -2,8 +2,9 @@ def splash_request(request, directive=None, dont_filter=None):
     """Transform request to run with SplashMiddleware"""
     request.meta.update({
         'splash': {
-            'html': 1,
-            'png': 1,
+            'debug': True,
+            'return_html': True,
+            'return_png': True,
             'timeout': 60,
         },
         'splash_directive': directive
