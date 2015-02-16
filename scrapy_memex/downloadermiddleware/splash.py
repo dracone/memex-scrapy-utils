@@ -175,8 +175,7 @@ class SplashMiddleware(object):
                 encoding='utf-8',
             )
             if 'png' in data:
-                request.meta['png'] = data['png']
-
+                request.meta['png'] = base64.b64decode(data['png'])
 
         return response
 
