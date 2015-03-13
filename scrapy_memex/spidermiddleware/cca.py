@@ -1,10 +1,17 @@
 from scrapy_memex_api.convert import response2cca
 from scrapy.item import DictItem, Field
+from scrapy.exceptions import NotConfigured
 
 
 class CcaMiddleware(object):
 
     _item_class = None  # Cached dynamic CcaItem class
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        enabled = crawler.settings.get('CCA_ENABLED', True)
+        if not enabled:
+            raise NotConfigured
 
     def process_spider_output(self, response, result, spider):
         for r in result:
