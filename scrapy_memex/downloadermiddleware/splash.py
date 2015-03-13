@@ -92,25 +92,38 @@ class SplashMiddleware(object):
     def _lua_request(self, request, splash_options, directive):
         splash_url = urljoin(self.splash_url, 'execute')
         lua_source = self._load_lua_source(directive)
+        js_source = self._load_js_source(directive)
         meta = self._prepare_meta(request, splash_options)
         splash_options['url'] = request.url
         new_request = request.replace(
             url=splash_url + '?' + urlencode(splash_options),
             method='POST',
-            body=json.dumps({'lua_source': lua_source}),
+            body=json.dumps({'lua_source': lua_source, 'js_source': js_source}),
             meta=meta,
             headers={'Content-Type': 'application/json'},
         )
         return new_request
 
     def _load_lua_source(self, directive):
-        cached = self._lua_cache.get(directive)
+        cache_name = 'lua_' + directive
+        cached = self._lua_cache.get(cache_name)
         if cached:
             return cached
         path = os.path.join(self.directives_dir, directive + '.lua')
         with open(path) as f:
             source = f.read()
-            self._lua_cache[directive] = source
+            self._lua_cache[cache_name] = source
+            return source
+
+    def _load_js_source(self, directive):
+        cache_name = 'js_' + directive
+        cached = self._lua_cache.get(cache_name)
+        if cached:
+            return cached
+        path = os.path.join(self.directives_dir, directive + '.js')
+        with open(path) as f:
+            source = f.read()
+            self._lua_cache[cache_name] = source
             return source
 
     def _is_request_type_supported(self, request):
