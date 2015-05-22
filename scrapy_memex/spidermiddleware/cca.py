@@ -33,7 +33,7 @@ class CcaMiddleware(object):
         else:
             exporter = self.exporters_by_path.get(cca_path)
             if exporter is None:
-                exporter = JsonLinesItemExporter(open(cca_path, 'a'))
+                exporter = JsonLinesItemExporter(open(cca_path, 'a+'))
                 self.exporters_by_path[cca_path] = exporter
             exporter.export_item(cca_item)
 
